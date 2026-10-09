@@ -1,0 +1,91 @@
+name: Build Dexter AI APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Generate Android Project
+      run: |
+        mkdir -p app/src/main/java/com/dexter/ai app/src/main/res/layout app/src/main/res/values
+        cat << 'EOF' > settings.gradle
+        rootProject.name = "DexterAI"
+        include ':app'
+        EOF
+        cat << 'EOF' > build.gradle
+        buildscript {
+            repositories { google(); mavenCentral() }
+            dependencies { classpath 'com.android.tools.build:gradle:8.2.2' }
+        }
+        allprojects { repositories { google(); mavenCentral() } }
+        EOF
+        cat << 'EOF' > app/build.gradle
+        plugins { id 'com.android.application' }
+        android {
+            namespace 'com.dexter.ai'
+            compileSdk 34
+            defaultConfig { applicationId "com.dexter.ai"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" }
+        }
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.11.0'
+            implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+        }
+        EOF
+        cat << 'EOF' > app/src/main/AndroidManifest.xml
+        <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.dexter.ai">
+            <uses-permission android:name="android.permission.INTERNET" />
+            <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+            <application android:label="Dexter AI" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+                <activity android:name=".MainActivity" android:exported="true">
+                    <intent-filter>
+                        <action android:name="android.intent.action.MAIN" />
+                        <category android:name="android.intent.category.LAUNCHER" />
+                    </intent-filter>
+                </activity>
+                <service android:name=".DexterNotificationService" android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" android:exported="true">
+                    <intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter>
+                </service>
+            </application>
+        </manifest>
+        EOF
+        cat << 'EOF' > app/src/main/java/com/dexter/ai/MainActivity.java
+        package com.dexter.ai;
+        import android.os.Bundle;
+        import androidx.appcompat.app.AppCompatActivity;
+        public class MainActivity extends AppCompatActivity {
+            @Override
+            protected void onCreate(Bundle savedInstanceState) {
+                super.onCreate(savedInstanceState);
+            }
+        }
+        EOF
+        cat << 'EOF' > app/src/main/java/com/dexter/ai/DexterNotificationService.java
+        package com.dexter.ai;
+        import android.service.notification.NotificationListenerService;
+        public class DexterNotificationService extends NotificationListenerService {}
+        EOF
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+
+    - name: Build APK
+      run: gradle assembleDebug
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: DexterAI-APK
+        path: app/build/outputs/apk/debug/app-debug.apk
+        
