@@ -16,9 +16,6 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
     - name: Setup Gradle 8.4
       uses: gradle/actions/setup-gradle@v3
       with:
@@ -26,16 +23,11 @@ jobs:
 
     - name: Generate Android Project
       run: |
-        mkdir -p app/src/main/java/com/dexter/ai app/src/main/res/values
-        
+        mkdir -p app/src/main/java/com/dexter/ai
+
         cat << 'EOF' > settings.gradle
         rootProject.name = "DexterAI"
         include ':app'
-        EOF
-
-        cat << 'EOF' > gradle.properties
-        android.useAndroidX=true
-        android.enableJetifier=true
         EOF
 
         cat << 'EOF' > build.gradle
@@ -63,9 +55,6 @@ jobs:
                 targetCompatibility JavaVersion.VERSION_17
             }
         }
-        dependencies {
-            implementation 'androidx.appcompat:appcompat:1.6.1'
-        }
         EOF
 
         cat << 'EOF' > app/src/main/AndroidManifest.xml
@@ -73,7 +62,7 @@ jobs:
         <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.dexter.ai">
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-            <application android:label="Dexter AI" android:theme="@style/Theme.AppCompat.Light.NoActionBar">
+            <application android:label="Dexter AI" android:theme="@android:style/Theme.DeviceDefault">
                 <activity android:name=".MainActivity" android:exported="true">
                     <intent-filter>
                         <action android:name="android.intent.action.MAIN" />
@@ -89,12 +78,16 @@ jobs:
 
         cat << 'EOF' > app/src/main/java/com/dexter/ai/MainActivity.java
         package com.dexter.ai;
+        import android.app.Activity;
         import android.os.Bundle;
-        import androidx.appcompat.app.AppCompatActivity;
-        public class MainActivity extends AppCompatActivity {
+        import android.widget.TextView;
+        public class MainActivity extends Activity {
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
+                TextView tv = new TextView(this);
+                tv.setText("Dexter AI Running!");
+                setContentView(tv);
             }
         }
         EOF
@@ -106,7 +99,7 @@ jobs:
         EOF
 
     - name: Build APK
-      run: gradle assembleDebug --stacktrace
+      run: gradle assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
