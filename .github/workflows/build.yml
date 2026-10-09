@@ -16,13 +16,28 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Setup Gradle 8.4
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.4'
+
     - name: Generate Android Project
       run: |
-        mkdir -p app/src/main/java/com/dexter/ai app/src/main/res/layout app/src/main/res/values
+        mkdir -p app/src/main/java/com/dexter/ai app/src/main/res/values
+        
         cat << 'EOF' > settings.gradle
         rootProject.name = "DexterAI"
         include ':app'
         EOF
+
+        cat << 'EOF' > gradle.properties
+        android.useAndroidX=true
+        android.enableJetifier=true
+        EOF
+
         cat << 'EOF' > build.gradle
         buildscript {
             repositories { google(); mavenCentral() }
@@ -30,20 +45,31 @@ jobs:
         }
         allprojects { repositories { google(); mavenCentral() } }
         EOF
+
         cat << 'EOF' > app/build.gradle
         plugins { id 'com.android.application' }
         android {
             namespace 'com.dexter.ai'
             compileSdk 34
-            defaultConfig { applicationId "com.dexter.ai"; minSdk 24; targetSdk 34; versionCode 1; versionName "1.0" }
+            defaultConfig {
+                applicationId "com.dexter.ai"
+                minSdk 24
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+            }
+            compileOptions {
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
+            }
         }
         dependencies {
             implementation 'androidx.appcompat:appcompat:1.6.1'
-            implementation 'com.google.android.material:material:1.11.0'
-            implementation 'com.squareup.okhttp3:okhttp:4.12.0'
         }
         EOF
+
         cat << 'EOF' > app/src/main/AndroidManifest.xml
+        <?xml version="1.0" encoding="utf-8"?>
         <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.dexter.ai">
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
@@ -60,6 +86,7 @@ jobs:
             </application>
         </manifest>
         EOF
+
         cat << 'EOF' > app/src/main/java/com/dexter/ai/MainActivity.java
         package com.dexter.ai;
         import android.os.Bundle;
@@ -71,17 +98,15 @@ jobs:
             }
         }
         EOF
+
         cat << 'EOF' > app/src/main/java/com/dexter/ai/DexterNotificationService.java
         package com.dexter.ai;
         import android.service.notification.NotificationListenerService;
         public class DexterNotificationService extends NotificationListenerService {}
         EOF
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-
     - name: Build APK
-      run: gradle assembleDebug
+      run: gradle assembleDebug --stacktrace
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
