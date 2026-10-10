@@ -21,7 +21,7 @@ jobs:
       with:
         gradle-version: '8.4'
 
-    - name: Generate Full Android Project
+    - name: Generate Android Code
       run: |
         mkdir -p app/src/main/java/com/dexter/ai
 
@@ -62,7 +62,6 @@ jobs:
         <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.dexter.ai">
             <uses-permission android:name="android.permission.INTERNET" />
             <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-            <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
             <application android:label="Dexter AI" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
                 <activity android:name=".MainActivity" android:exported="true">
                     <intent-filter>
@@ -80,7 +79,6 @@ jobs:
 
         cat << 'EOF' > app/src/main/java/com/dexter/ai/MainActivity.java
         package com.dexter.ai;
-
         import android.app.Activity;
         import android.content.Intent;
         import android.content.SharedPreferences;
@@ -89,278 +87,139 @@ jobs:
         import android.os.Build;
         import android.os.Bundle;
         import android.provider.Settings;
-        import android.view.Gravity;
         import android.widget.*;
 
         public class MainActivity extends Activity {
-            private EditText geminiKeyInput, grokKeyInput;
-            private SharedPreferences prefs;
-
             @Override
             protected void onCreate(Bundle savedInstanceState) {
                 super.onCreate(savedInstanceState);
-                prefs = getSharedPreferences("DexterPrefs", MODE_PRIVATE);
-
-                ScrollView scrollView = new ScrollView(this);
+                SharedPreferences prefs = getSharedPreferences("DexterPrefs", MODE_PRIVATE);
                 LinearLayout layout = new LinearLayout(this);
                 layout.setOrientation(LinearLayout.VERTICAL);
                 layout.setPadding(40, 60, 40, 60);
                 layout.setBackgroundColor(Color.parseColor("#121212"));
 
                 TextView title = new TextView(this);
-                title.setText("Dexter AI Assistant");
-                title.setTextSize(26);
+                title.setText("Dexter AI Settings");
+                title.setTextSize(24);
                 title.setTextColor(Color.parseColor("#00E5FF"));
-                title.setGravity(Gravity.CENTER);
                 layout.addView(title);
 
-                TextView sub = new TextView(this);
-                sub.setText("Smart Notification & Voice AI");
-                sub.setTextSize(14);
-                sub.setTextColor(Color.GRAY);
-                sub.setGravity(Gravity.CENTER);
-                sub.setPadding(0, 0, 0, 40);
-                layout.addView(sub);
-
-                TextView gLabel = new TextView(this);
-                gLabel.setText("Gemini API Key:");
-                gLabel.setTextColor(Color.WHITE);
-                layout.addView(gLabel);
-
-                geminiKeyInput = new EditText(this);
-                geminiKeyInput.setHint("Paste Gemini API Key here");
-                geminiKeyInput.setHintTextColor(Color.DKGRAY);
-                geminiKeyInput.setTextColor(Color.WHITE);
-                geminiKeyInput.setText(prefs.getString("gemini_api_key", ""));
-                geminiKeyInput.setBackgroundColor(Color.parseColor("#1E1E1E"));
-                geminiKeyInput.setPadding(20, 20, 20, 20);
-                layout.addView(geminiKeyInput);
-
-                TextView grkLabel = new TextView(this);
-                grkLabel.setText("\nGrok (xAI) API Key (Optional):");
-                grkLabel.setTextColor(Color.WHITE);
-                layout.addView(grkLabel);
-
-                grokKeyInput = new EditText(this);
-                grokKeyInput.setHint("Paste Grok API Key here");
-                grokKeyInput.setHintTextColor(Color.DKGRAY);
-                grokKeyInput.setTextColor(Color.WHITE);
-                grokKeyInput.setText(prefs.getString("grok_api_key", ""));
-                grokKeyInput.setBackgroundColor(Color.parseColor("#1E1E1E"));
-                grokKeyInput.setPadding(20, 20, 20, 20);
-                layout.addView(grokKeyInput);
+                EditText keyInput = new EditText(this);
+                keyInput.setHint("Enter Gemini / Grok API Key");
+                keyInput.setHintTextColor(Color.GRAY);
+                keyInput.setTextColor(Color.WHITE);
+                keyInput.setText(prefs.getString("api_key", ""));
+                layout.addView(keyInput);
 
                 Button saveBtn = new Button(this);
-                saveBtn.setText("💾 Save API Keys");
+                saveBtn.setText("Save API Key");
                 saveBtn.setOnClickListener(v -> {
-                    prefs.edit()
-                        .putString("gemini_api_key", geminiKeyInput.getText().toString().trim())
-                        .putString("grok_api_key", grokKeyInput.getText().toString().trim())
-                        .apply();
-                    Toast.makeText(this, "API Keys Saved Successfully!", Toast.LENGTH_SHORT).show();
+                    prefs.edit().putString("api_key", keyInput.getText().toString().trim()).apply();
+                    Toast.makeText(this, "Key Saved!", Toast.LENGTH_SHORT).show();
                 });
                 layout.addView(saveBtn);
 
-                TextView permTitle = new TextView(this);
-                permTitle.setText("\nPermissions Required:");
-                permTitle.setTextSize(18);
-                permTitle.setTextColor(Color.parseColor("#00E5FF"));
-                layout.addView(permTitle);
-
                 Button notifBtn = new Button(this);
                 notifBtn.setText("1. Grant Notification Access");
-                notifBtn.setOnClickListener(v -> {
-                    startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));
-                });
+                notifBtn.setOnClickListener(v -> startActivity(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")));
                 layout.addView(notifBtn);
 
                 Button overlayBtn = new Button(this);
-                overlayBtn.setText("2. Grant Display Over Apps (Bubble)");
+                overlayBtn.setText("2. Grant Floating Bubble Access");
                 overlayBtn.setOnClickListener(v -> {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
                         startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName())));
                     } else {
-                        Toast.makeText(this, "Overlay Permission Granted!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Overlay Granted!", Toast.LENGTH_SHORT).show();
                     }
                 });
                 layout.addView(overlayBtn);
 
                 Button bubbleBtn = new Button(this);
-                bubbleBtn.setText("🚀 Launch Dexter Floating Bubble");
+                bubbleBtn.setText("🚀 Launch Floating Bubble");
                 bubbleBtn.setBackgroundColor(Color.parseColor("#00C853"));
-                bubbleBtn.setTextColor(Color.WHITE);
                 bubbleBtn.setOnClickListener(v -> {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
-                        Toast.makeText(this, "Grant Overlay Permission first!", Toast.LENGTH_LONG).show();
-                    } else {
-                        startService(new Intent(this, FloatingBubbleService.class));
-                        Toast.makeText(this, "Dexter Bubble Activated!", Toast.LENGTH_SHORT).show();
-                    }
+                    startService(new Intent(this, FloatingBubbleService.class));
+                    Toast.makeText(this, "Bubble Started!", Toast.LENGTH_SHORT).show();
                 });
                 layout.addView(bubbleBtn);
 
-                scrollView.addView(layout);
-                setContentView(scrollView);
+                ScrollView sv = new ScrollView(this);
+                sv.addView(layout);
+                setContentView(sv);
             }
         }
         EOF
 
         cat << 'EOF' > app/src/main/java/com/dexter/ai/DexterNotificationService.java
         package com.dexter.ai;
-
         import android.app.Notification;
         import android.content.SharedPreferences;
         import android.os.Bundle;
         import android.service.notification.NotificationListenerService;
         import android.service.notification.StatusBarNotification;
         import android.speech.tts.TextToSpeech;
-        import android.util.Log;
-        import org.json.JSONArray;
-        import org.json.JSONObject;
         import java.io.*;
         import java.net.HttpURLConnection;
         import java.net.URL;
         import java.nio.charset.StandardCharsets;
         import java.util.Locale;
+        import org.json.JSONArray;
+        import org.json.JSONObject;
 
         public class DexterNotificationService extends NotificationListenerService implements TextToSpeech.OnInitListener {
             private TextToSpeech tts;
-
             @Override
             public void onCreate() {
                 super.onCreate();
                 tts = new TextToSpeech(this, this);
             }
-
             @Override
             public void onInit(int status) {
-                if (status == TextToSpeech.SUCCESS) {
-                    tts.setLanguage(Locale.US);
-                }
+                if (status == TextToSpeech.SUCCESS) tts.setLanguage(Locale.US);
             }
-
             @Override
             public void onNotificationPosted(StatusBarNotification sbn) {
                 String pkg = sbn.getPackageName();
                 if (pkg == null || pkg.equals(getPackageName())) return;
-
-                if (pkg.contains("telegram") || pkg.contains("whatsapp") || pkg.contains("messaging")) {
-                    Notification notif = sbn.getNotification();
-                    if (notif == null || notif.extras == null) return;
-                    Bundle extras = notif.extras;
-                    String title = extras.getString(Notification.EXTRA_TITLE, "");
-                    CharSequence textChar = extras.getCharSequence(Notification.EXTRA_TEXT);
-                    String text = textChar != null ? textChar.toString() : "";
-
-                    if (!text.isEmpty()) {
-                        analyzeNotification(title, text);
-                    }
-                }
+                Notification n = sbn.getNotification();
+                if (n == null || n.extras == null) return;
+                Bundle b = n.extras;
+                String title = b.getString(Notification.EXTRA_TITLE, "");
+                CharSequence cs = b.getCharSequence(Notification.EXTRA_TEXT);
+                String text = cs != null ? cs.toString() : "";
+                if (!text.isEmpty()) analyze(title, text);
             }
-
-            private void analyzeNotification(String sender, String message) {
+            private void analyze(String title, String msg) {
                 new Thread(() -> {
-                    SharedPreferences prefs = getSharedPreferences("DexterPrefs", MODE_PRIVATE);
-                    String geminiKey = prefs.getString("gemini_api_key", "");
-                    String grokKey = prefs.getString("grok_api_key", "");
-
-                    if (!geminiKey.isEmpty()) {
-                        callGemini(geminiKey, sender, message);
-                    } else if (!grokKey.isEmpty()) {
-                        callGrok(grokKey, sender, message);
-                    }
+                    SharedPreferences p = getSharedPreferences("DexterPrefs", MODE_PRIVATE);
+                    String key = p.getString("api_key", "");
+                    if (key.isEmpty()) return;
+                    try {
+                        URL u = new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + key);
+                        HttpURLConnection c = (HttpURLConnection) u.openConnection();
+                        c.setRequestMethod("POST");
+                        c.setRequestProperty("Content-Type", "application/json");
+                        c.setDoOutput(true);
+                        String q = "Notification from " + title + ": '" + msg + "'. Is this important? Summarize in 1 sentence in Amharic.";
+                        JSONObject body = new JSONObject().put("contents", new JSONArray().put(new JSONObject().put("parts", new JSONArray().put(new JSONObject().put("text", q)))));
+                        try (OutputStream os = c.getOutputStream()) { os.write(body.toString().getBytes(StandardCharsets.UTF_8)); }
+                        if (c.getResponseCode() == 200) {
+                            BufferedReader r = new BufferedReader(new InputStreamReader(c.getInputStream(), StandardCharsets.UTF_8));
+                            StringBuilder sb = new StringBuilder();
+                            String line;
+                            while ((line = r.readLine()) != null) sb.append(line);
+                            JSONObject res = new JSONObject(sb.toString());
+                            String reply = res.getJSONArray("candidates").getJSONObject(0).getJSONObject("content").getJSONArray("parts").getJSONObject(0).getString("text");
+                            if (tts != null) tts.speak(reply, TextToSpeech.QUEUE_ADD, null, "d");
+                        }
+                    } catch (Exception e) {}
                 }).start();
             }
-
-            private void callGemini(String apiKey, String sender, String message) {
-                try {
-                    URL url = new URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey);
-                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    conn.setRequestMethod("POST");
-                    conn.setRequestProperty("Content-Type", "application/json");
-                    conn.setDoOutput(true);
-
-                    String prompt = "Analyze this notification: Sender: " + sender + ", Message: '" + message + "'. Is it urgent/important? Explain briefly in Amharic in 1 short sentence.";
-                    JSONObject part = new JSONObject().put("text", prompt);
-                    JSONArray parts = new JSONArray().put(part);
-                    JSONObject content = new JSONObject().put("parts", parts);
-                    JSONArray contents = new JSONArray().put(content);
-                    JSONObject body = new JSONObject().put("contents", contents);
-
-                    try (OutputStream os = conn.getOutputStream()) {
-                        os.write(body.toString().getBytes(StandardCharsets.UTF_8));
-                    }
-
-                    if (conn.getResponseCode() == 200) {
-                        String res = readStream(conn.getInputStream());
-                        JSONObject resObj = new JSONObject(res);
-                        String reply = resObj.getJSONArray("candidates")
-                                .getJSONObject(0)
-                                .getJSONObject("content")
-                                .getJSONArray("parts")
-                                .getJSONObject(0)
-                                .getString("text");
-                        speak(reply);
-                    }
-                } catch (Exception e) {
-                    Log.e("DexterAI", "Gemini error", e);
-                }
-            }
-
-            private void callGrok(String apiKey, String sender, String message) {
-                try {
-                    URL url = new URL("https://api.x.ai/v1/chat/completions");
-                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                    conn.setRequestMethod("POST");
-                    conn.setRequestProperty("Content-Type", "application/json");
-                    conn.setRequestProperty("Authorization", "Bearer " + apiKey);
-                    conn.setDoOutput(true);
-
-                    String prompt = "Analyze this notification: Sender: " + sender + ", Message: '" + message + "'. Explain briefly in Amharic in 1 sentence.";
-                    JSONObject msg = new JSONObject().put("role", "user").put("content", prompt);
-                    JSONArray msgs = new JSONArray().put(msg);
-                    JSONObject body = new JSONObject()
-                            .put("model", "grok-beta")
-                            .put("messages", msgs);
-
-                    try (OutputStream os = conn.getOutputStream()) {
-                        os.write(body.toString().getBytes(StandardCharsets.UTF_8));
-                    }
-
-                    if (conn.getResponseCode() == 200) {
-                        String res = readStream(conn.getInputStream());
-                        JSONObject resObj = new JSONObject(res);
-                        String reply = resObj.getJSONArray("choices")
-                                .getJSONObject(0)
-                                .getJSONObject("message")
-                                .getString("content");
-                        speak(reply);
-                    }
-                } catch (Exception e) {
-                    Log.e("DexterAI", "Grok error", e);
-                }
-            }
-
-            private String readStream(InputStream is) throws IOException {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) sb.append(line);
-                return sb.toString();
-            }
-
-            private void speak(String text) {
-                if (tts != null) {
-                    tts.speak(text, TextToSpeech.QUEUE_ADD, null, "Dexter");
-                }
-            }
-
             @Override
             public void onDestroy() {
-                if (tts != null) {
-                    tts.stop();
-                    tts.shutdown();
-                }
+                if (tts != null) { tts.stop(); tts.shutdown(); }
                 super.onDestroy();
             }
         }
@@ -368,7 +227,6 @@ jobs:
 
         cat << 'EOF' > app/src/main/java/com/dexter/ai/FloatingBubbleService.java
         package com.dexter.ai;
-
         import android.app.Service;
         import android.content.Intent;
         import android.graphics.Color;
@@ -385,69 +243,54 @@ jobs:
 
         public class FloatingBubbleService extends Service {
             private WindowManager wm;
-            private TextView bubbleView;
-
+            private TextView v;
             @Override
             public IBinder onBind(Intent intent) { return null; }
-
             @Override
             public void onCreate() {
                 super.onCreate();
                 wm = (WindowManager) getSystemService(WINDOW_SERVICE);
-
-                bubbleView = new TextView(this);
-                bubbleView.setText("🤖");
-                bubbleView.setTextSize(32);
-                bubbleView.setGravity(Gravity.CENTER);
-
-                GradientDrawable bg = new GradientDrawable();
-                bg.setShape(GradientDrawable.OVAL);
-                bg.setColor(Color.parseColor("#00E5FF"));
-                bubbleView.setBackground(bg);
-
-                int type = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ?
-                        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY :
-                        WindowManager.LayoutParams.TYPE_PHONE;
-
-                final WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                        160, 160,
-                        type,
-                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                        PixelFormat.TRANSLUCENT
-                );
-                params.gravity = Gravity.TOP | Gravity.START;
-                params.x = 100;
-                params.y = 300;
-
-                wm.addView(bubbleView, params);
-
-                bubbleView.setOnTouchListener(new View.OnTouchListener() {
-                    private int initialX, initialY;
-                    private float initialTouchX, initialTouchY;
-
-                    @Override
-                    public boolean onTouch(View v, MotionEvent event) {
-                        switch (event.getAction()) {
-                            case MotionEvent.ACTION_DOWN:
-                                initialX = params.x;
-                                initialY = params.y;
-                                initialTouchX = event.getRawX();
-                                initialTouchY = event.getRawY();
-                                return true;
-                            case MotionEvent.ACTION_MOVE:
-                                params.x = initialX + (int) (event.getRawX() - initialTouchX);
-                                params.y = initialY + (int) (event.getRawY() - initialTouchY);
-                                wm.updateViewLayout(bubbleView, params);
-                                return true;
+                v = new TextView(this);
+                v.setText("🤖");
+                v.setTextSize(30);
+                v.setGravity(Gravity.CENTER);
+                GradientDrawable g = new GradientDrawable();
+                g.setShape(GradientDrawable.OVAL);
+                g.setColor(Color.parseColor("#00E5FF"));
+                v.setBackground(g);
+                int t = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY : WindowManager.LayoutParams.TYPE_PHONE;
+                final WindowManager.LayoutParams p = new WindowManager.LayoutParams(160, 160, t, WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE, PixelFormat.TRANSLUCENT);
+                p.gravity = Gravity.TOP | Gravity.START;
+                p.x = 100; p.y = 300;
+                wm.addView(v, p);
+                v.setOnTouchListener(new View.OnTouchListener() {
+                    int ix, iy; float tx, ty;
+                    public boolean onTouch(View view, MotionEvent e) {
+                        switch (e.getAction()) {
+                            case MotionEvent.ACTION_DOWN: ix = p.x; iy = p.y; tx = e.getRawX(); ty = e.getRawY(); return true;
+                            case MotionEvent.ACTION_MOVE: p.x = ix + (int)(e.getRawX() - tx); p.y = iy + (int)(e.getRawY() - ty); wm.updateViewLayout(v, p); return true;
                             case MotionEvent.ACTION_UP:
-                                if (Math.abs(event.getRawX() - initialTouchX) < 15 && Math.abs(event.getRawY() - initialTouchY) < 15) {
-                                    Toast.makeText(FloatingBubbleService.this, "Dexter AI is active!", Toast.LENGTH_SHORT).show();
-                                }
+                                if (Math.abs(e.getRawX() - tx) < 15) Toast.makeText(FloatingBubbleService.this, "Dexter Active!", Toast.LENGTH_SHORT).show();
                                 return true;
                         }
                         return false;
                     }
                 });
             }
+            @Override
+            public void onDestroy() {
+                super.onDestroy();
+                if (v != null) wm.removeView(v);
+            }
+        }
+        EOF
 
-    
+    - name: Build APK
+      run: gradle assembleDebug
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: DexterAI-APK
+        path: app/build/outputs/apk/debug/app-debug.apk
+        
